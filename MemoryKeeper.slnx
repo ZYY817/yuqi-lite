@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MemoryKeeper.Contracts/MemoryKeeper.Contracts.csproj" />
+    <Project Path="src/MemoryKeeper.Core/MemoryKeeper.Core.csproj" />
+    <Project Path="src/MemoryKeeper.Shell/MemoryKeeper.Shell.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/">
+    <Project Path="src/Modules/MemoryKeeper.Modules.Cleaner/MemoryKeeper.Modules.Cleaner.csproj" />
+    <Project Path="src/Modules/MemoryKeeper.Modules.Disabled/MemoryKeeper.Modules.Disabled.csproj" />
+    <Project Path="src/Modules/MemoryKeeper.Modules.Shared/MemoryKeeper.Modules.Shared.csproj" />
+    <Project Path="src/Modules/MemoryKeeper.Modules.Whitelist/MemoryKeeper.Modules.Whitelist.csproj" />
+  </Folder>
+</Solution>

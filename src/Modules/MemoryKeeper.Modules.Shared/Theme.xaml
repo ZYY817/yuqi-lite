@@ -1,0 +1,645 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:shared="clr-namespace:MemoryKeeper.Modules.Shared">
+
+    <!-- ==================== 1. 转换器 ==================== -->
+    <shared:PathToIconConverter x:Key="PathToIcon"/>
+    <shared:IconTintConverter x:Key="IconTint"/>
+    <shared:IconAccentConverter x:Key="IconAccent"/>
+    <shared:StringToGeometryConverter x:Key="StrToGeo"/>
+    <shared:NotBoolConverter x:Key="NotBool"/>
+    <shared:BoolToVisibilityConverter x:Key="BoolToVis"/>
+    <shared:InverseBoolToVisibilityConverter x:Key="InverseBoolToVis"/>
+
+    <!-- ==================== 2. 颜色规范（Design Tokens） ==================== -->
+    <SolidColorBrush x:Key="MkCanvasBg" Color="#F8F9FB"/>
+    <SolidColorBrush x:Key="MkCardBg" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="MkSubtleBg" Color="#F0F2F5"/>
+    <SolidColorBrush x:Key="MkTextPrimary" Color="#191A1D"/>
+    <SolidColorBrush x:Key="MkTextSecondary" Color="#737985"/>
+    <SolidColorBrush x:Key="MkTextMuted" Color="#969BA5"/>
+    <SolidColorBrush x:Key="MkHairline" Color="#E8EAF0"/>
+    <SolidColorBrush x:Key="MkRowHairline" Color="#ECEEF2"/>
+    <SolidColorBrush x:Key="MkBadgeBg" Color="#F0F2F5"/>
+    <SolidColorBrush x:Key="MkBadgeFg" Color="#5A5D66"/>
+    <SolidColorBrush x:Key="MkSuccessBg" Color="#E6F4ED"/>
+    <SolidColorBrush x:Key="MkSuccessFg" Color="#18794E"/>
+    <SolidColorBrush x:Key="MkWarnBg" Color="#FEF0E8"/>
+    <SolidColorBrush x:Key="MkWarnFg" Color="#D95D1E"/>
+    <SolidColorBrush x:Key="MkAccentBlue" Color="#2E6BE6"/>
+
+    <!-- ==================== 2.5 圆角 / 阴影令牌 ==================== -->
+    <CornerRadius x:Key="MkR4">4</CornerRadius>
+    <CornerRadius x:Key="MkR5">5</CornerRadius>
+    <CornerRadius x:Key="MkR7">7</CornerRadius>
+    <CornerRadius x:Key="MkR8">8</CornerRadius>
+    <CornerRadius x:Key="MkR10">10</CornerRadius>
+    <CornerRadius x:Key="MkR12">12</CornerRadius>
+
+    <!-- 卡片微投影（非常轻，近似 iOS/macOS 的纸片感） -->
+    <DropShadowEffect x:Key="MkShadowCard" x:Shared="False" Color="#191A1D" Opacity="0.05" BlurRadius="14" ShadowDepth="1"/>
+    <!-- 浮层投影（弹窗/菜单/下拉） -->
+    <DropShadowEffect x:Key="MkShadowPop" x:Shared="False" Color="#000000" Opacity="0.12" BlurRadius="24" ShadowDepth="2"/>
+
+    <!-- ==================== 2.6 全局隐式样式：细滚动条 + Tooltip ==================== -->
+    <!-- 细滚动条：6px 圆形拇指，悬停加深，轨道透明 -->
+    <Style TargetType="ScrollBar">
+        <Setter Property="Width" Value="10"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ScrollBar">
+                    <Border Background="{TemplateBinding Background}" Margin="2,0,2,0" CornerRadius="4">
+                        <Track x:Name="PART_Track">
+                            <Track.Thumb>
+                                <Thumb>
+                                    <Thumb.Template>
+                                        <ControlTemplate TargetType="Thumb">
+                                            <Border x:Name="thumb" Background="#C9CDD6" CornerRadius="3" Margin="2,0"/>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="#A9AEBB" TargetName="thumb"/>
+                                                </Trigger>
+                                                <Trigger Property="IsDragging" Value="True">
+                                                    <Setter Property="Background" Value="#8A8F9C" TargetName="thumb"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Thumb.Template>
+                                </Thumb>
+                            </Track.Thumb>
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton Command="{x:Static ScrollBar.PageDownCommand}" Opacity="0" IsTabStop="False" Focusable="False"/>
+                            </Track.IncreaseRepeatButton>
+                            <Track.DecreaseRepeatButton>
+                                <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}" Opacity="0" IsTabStop="False" Focusable="False"/>
+                            </Track.DecreaseRepeatButton>
+                        </Track>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="Orientation" Value="Horizontal">
+                <Setter Property="Width" Value="Auto"/>
+                <Setter Property="Height" Value="10"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- 白色卡片 Tooltip -->
+    <Style TargetType="ToolTip">
+        <Setter Property="FontSize" Value="11.5"/>
+        <Setter Property="Foreground" Value="{StaticResource MkTextSecondary}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToolTip">
+                    <Border Background="White" BorderBrush="{StaticResource MkHairline}" BorderThickness="1"
+                            CornerRadius="{StaticResource MkR8}" Padding="9,5" Margin="0,0,0,8"
+                            Effect="{StaticResource MkShadowPop}">
+                        <ContentPresenter/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ==================== 2.7 通用容器/徽标组件 ==================== -->
+    <!-- 白色容器卡：信息分组（详情页概览、结果分组等） -->
+    <Style x:Key="MkCard" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource MkCardBg}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource MkHairline}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="{StaticResource MkR10}"/>
+        <Setter Property="UseLayoutRounding" Value="True"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <!-- 中性灰徽标 -->
+    <Style x:Key="MkBadge" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource MkBadgeBg}"/>
+        <Setter Property="CornerRadius" Value="{StaticResource MkR5}"/>
+        <Setter Property="Padding" Value="8,2"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <Style x:Key="MkBadgeText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource MkBadgeFg}"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+    </Style>
+
+    <!-- ==================== 3. 排版规范（Typography） ==================== -->
+    <Style x:Key="MkPageTitle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="20"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{StaticResource MkTextPrimary}"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+    </Style>
+
+    <Style x:Key="MkPageSubtitle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Foreground" Value="{StaticResource MkTextSecondary}"/>
+        <Setter Property="Margin" Value="0,4,0,0"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+    </Style>
+
+    <Style x:Key="MkSectionTitle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="#5C616C"/>
+        <Setter Property="Margin" Value="2,10,0,6"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+    </Style>
+
+    <Style x:Key="MkRowTitle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{StaticResource MkTextPrimary}"/>
+        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+    </Style>
+
+    <Style x:Key="MkRowDesc" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11.5"/>
+        <Setter Property="Foreground" Value="{StaticResource MkTextSecondary}"/>
+        <Setter Property="Margin" Value="0,2,0,0"/>
+        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+    </Style>
+
+    <Style x:Key="MkRowMemory" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="Foreground" Value="{StaticResource MkTextSecondary}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="TextAlignment" Value="Right"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+    </Style>
+
+    <!-- ==================== 4. 基础控件规范（Components） ==================== -->
+
+    <!-- 白色圆角卡片行容器 -->
+    <Style x:Key="MkRowCard" TargetType="Border">
+        <Setter Property="Background" Value="White"/>
+        <Setter Property="BorderBrush" Value="#EDEEF3"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Padding" Value="14,10"/>
+        <Setter Property="Margin" Value="0,0,0,6"/>
+        <Setter Property="UseLayoutRounding" Value="True"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <!-- 扁平列表行：透明底 + 底部细分隔线 + 悬停浅灰（圆角） -->
+    <Style x:Key="MkFlatRow" TargetType="Border">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="#ECEEF2"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="CornerRadius" Value="{StaticResource MkR7}"/>
+        <Setter Property="Padding" Value="14,10"/>
+        <Setter Property="UseLayoutRounding" Value="True"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="#F1F3F6"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- 方形圆角复选框：18x18，像素对齐 -->
+    <Style x:Key="SquircleCheck" TargetType="CheckBox">
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="UseLayoutRounding" Value="True"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Border x:Name="box" Width="19" Height="19" CornerRadius="5"
+                            BorderBrush="#C4C8D2" BorderThickness="1.5" Background="White">
+                        <Canvas Width="12" Height="12" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Path x:Name="tick" Data="M2,6.5 L5,9.5 L10.2,3" Stroke="White"
+                                  StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                  StrokeLineJoin="Round" Visibility="Collapsed"/>
+                        </Canvas>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="BorderBrush" Value="#8A8E99" TargetName="box"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter Property="Background" Value="#191A1D" TargetName="box"/>
+                            <Setter Property="BorderBrush" Value="#191A1D" TargetName="box"/>
+                            <Setter Property="Visibility" Value="Visible" TargetName="tick"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 单选框（用于模式触发方式等） -->
+    <Style x:Key="MkRadio" TargetType="RadioButton">
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FontSize" Value="13.5"/>
+        <Setter Property="Foreground" Value="#191A1D"/>
+        <Setter Property="UseLayoutRounding" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <StackPanel Orientation="Horizontal" Background="Transparent">
+                        <Grid Width="18" Height="18" VerticalAlignment="Center">
+                            <Ellipse x:Name="outer" Width="18" Height="18" Stroke="#C4C8D2" StrokeThickness="1.5" Fill="White"/>
+                            <Ellipse x:Name="inner" Width="6" Height="6" Fill="White" Visibility="Collapsed"/>
+                        </Grid>
+                        <ContentPresenter VerticalAlignment="Center" Margin="10,0,0,0"/>
+                    </StackPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter Property="Fill" Value="#191A1D" TargetName="outer"/>
+                            <Setter Property="Stroke" Value="#191A1D" TargetName="outer"/>
+                            <Setter Property="Visibility" Value="Visible" TargetName="inner"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 拨杆开关：42x24，knob 滑动动画 + 轨道色渐变 -->
+    <Style x:Key="Switch" TargetType="CheckBox">
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="UseLayoutRounding" Value="True"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Grid Width="42" Height="24">
+                        <Border x:Name="track" Width="42" Height="24" CornerRadius="12"
+                                Background="#CFD3DC"/>
+                        <Border x:Name="knob" Width="18" Height="18" CornerRadius="9"
+                                Background="White" BorderBrush="#14000000" BorderThickness="1"
+                                HorizontalAlignment="Left" Margin="3,0" VerticalAlignment="Center">
+                            <Border.RenderTransform>
+                                <TranslateTransform x:Name="knobX" X="0"/>
+                            </Border.RenderTransform>
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="knobX" Storyboard.TargetProperty="X"
+                                                         To="18" Duration="0:0:0.15">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                        <ColorAnimation Storyboard.TargetName="track" Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                        To="#191A1D" Duration="0:0:0.15"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="knobX" Storyboard.TargetProperty="X"
+                                                         To="0" Duration="0:0:0.15">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                        <ColorAnimation Storyboard.TargetName="track" Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                        To="#CFD3DC" Duration="0:0:0.15"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 蓝色拨杆开关（保护页等使用） -->
+    <Style x:Key="BlueSwitch" TargetType="CheckBox" BasedOn="{StaticResource Switch}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Grid Width="42" Height="24">
+                        <Border x:Name="track" Width="42" Height="24" CornerRadius="12"
+                                Background="#CFD3DC"/>
+                        <Border x:Name="knob" Width="18" Height="18" CornerRadius="9"
+                                Background="White" BorderBrush="#14000000" BorderThickness="1"
+                                HorizontalAlignment="Left" Margin="3,0" VerticalAlignment="Center">
+                            <Border.RenderTransform>
+                                <TranslateTransform x:Name="knobX" X="0"/>
+                            </Border.RenderTransform>
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="knobX" Storyboard.TargetProperty="X"
+                                                         To="18" Duration="0:0:0.15">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                        <ColorAnimation Storyboard.TargetName="track" Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                        To="#2E6BE6" Duration="0:0:0.15"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="knobX" Storyboard.TargetProperty="X"
+                                                         To="0" Duration="0:0:0.15">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                        <ColorAnimation Storyboard.TargetName="track" Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                        To="#CFD3DC" Duration="0:0:0.15"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 底部主按钮：全宽黑色圆角胶囊 -->
+    <Style x:Key="MkPrimaryBtn" TargetType="Button">
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Height" Value="42"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="UseLayoutRounding" Value="True"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="b" Background="#15161A" CornerRadius="11" Padding="18,0">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          TextElement.Foreground="White"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#000000" TargetName="b"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Background" Value="#3A3D45" TargetName="b"/>
+                            <Setter Property="RenderTransform" TargetName="b">
+                                <Setter.Value><ScaleTransform ScaleX="0.985" ScaleY="0.985"/></Setter.Value>
+                            </Setter>
+                            <Setter Property="RenderTransformOrigin" Value="0.5,0.5" TargetName="b"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Background" Value="#969BA5" TargetName="b"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 次级白底描边按钮 -->
+    <Style x:Key="MkOutlineBtn" TargetType="Button">
+        <Setter Property="Foreground" Value="#191A1D"/>
+        <Setter Property="Height" Value="38"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="UseLayoutRounding" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="b" Background="White" BorderBrush="#E2E5EC" BorderThickness="1" CornerRadius="10" Padding="16,0">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#F0F2F5" TargetName="b"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Background" Value="#E2E5EC" TargetName="b"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="TextElement.Foreground" Value="#A6ABB5" TargetName="b"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 紧凑深色小按钮（如模式列表中的「启用」） -->
+    <Style x:Key="MkSmallDarkBtn" TargetType="Button">
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Padding" Value="16,7"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="UseLayoutRounding" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="b" Background="#191A1D" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          TextElement.Foreground="White"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#000000" TargetName="b"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Background" Value="#3A3D45" TargetName="b"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 行内快捷浅灰按钮（如「编辑」「管理」「目录」） -->
+    <Style x:Key="MkInlineBtn" TargetType="Button">
+        <Setter Property="Background" Value="#F0F2F5"/>
+        <Setter Property="Foreground" Value="#191A1D"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="12,6"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="UseLayoutRounding" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="7"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#E2E5EC" TargetName="b"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Background" Value="#D4D8E0" TargetName="b"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 页面内分段 Tab（纯文字 + 激活浅底胶囊，用于清理/保护/记录的组内切换） -->
+    <Style x:Key="SegTab" TargetType="RadioButton">
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="Foreground" Value="#737985"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Margin" Value="2,0"/>
+        <Setter Property="UseLayoutRounding" Value="True"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="pill" CornerRadius="7" Padding="11,5" Background="Transparent">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter Property="Background" Value="#EEF0F7" TargetName="pill"/>
+                            <Setter Property="TextElement.Foreground" Value="#191A1D" TargetName="pill"/>
+                            <Setter Property="TextElement.FontWeight" Value="SemiBold" TargetName="pill"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="TextElement.Foreground" Value="#191A1D" TargetName="pill"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 下划线/纯文字链接按钮 -->
+    <Style x:Key="LinkBtn" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="#737985"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="6,2"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <TextBlock x:Name="t" Text="{TemplateBinding Content}"
+                               Foreground="{TemplateBinding Foreground}"
+                               TextOptions.TextFormattingMode="Display"/>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Foreground" Value="#191A1D" TargetName="t"/>
+                            <Setter Property="TextDecorations" Value="Underline" TargetName="t"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 现代搜索输入框 -->
+    <Style x:Key="MkSearchBox" TargetType="TextBox">
+        <Setter Property="Height" Value="30"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="Foreground" Value="#191A1D"/>
+        <Setter Property="Background" Value="White"/>
+        <Setter Property="BorderBrush" Value="#E2E5EC"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="10,0"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="8" Padding="{TemplateBinding Padding}">
+                        <Grid>
+                            <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="placeholder" Text="{TemplateBinding Tag}"
+                                       Foreground="#9AA0AA" IsHitTestVisible="False"
+                                       VerticalAlignment="Center" Margin="1,0,0,0" Visibility="Collapsed"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <DataTrigger Binding="{Binding Text, RelativeSource={RelativeSource Self}}" Value="">
+                            <Setter Property="Visibility" Value="Visible" TargetName="placeholder"/>
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 右键菜单 -->
+    <Style x:Key="RowMenu" TargetType="ContextMenu">
+        <Setter Property="Background" Value="White"/>
+        <Setter Property="BorderBrush" Value="#E2E5EC"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="5"/>
+        <Setter Property="UseLayoutRounding" Value="True"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContextMenu">
+                    <Grid Margin="8">
+                        <Border Background="White" CornerRadius="10">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#000" Opacity="0.10" BlurRadius="12" ShadowDepth="2"/>
+                            </Border.Effect>
+                        </Border>
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="10" Padding="{TemplateBinding Padding}">
+                            <ItemsPresenter/>
+                        </Border>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="RowMenuItem" TargetType="MenuItem">
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="Foreground" Value="#191A1D"/>
+        <Setter Property="Padding" Value="14,8"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Border x:Name="b" CornerRadius="6" Padding="{TemplateBinding Padding}"
+                            Background="Transparent">
+                        <ContentPresenter VerticalAlignment="Center" ContentSource="Header"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter Property="Background" Value="#F0F2F6" TargetName="b"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

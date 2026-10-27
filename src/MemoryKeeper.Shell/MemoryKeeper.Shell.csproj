@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\MemoryKeeper.Contracts\MemoryKeeper.Contracts.csproj" />
+    <ProjectReference Include="..\MemoryKeeper.Core\MemoryKeeper.Core.csproj" />
+    <ProjectReference Include="..\Modules\MemoryKeeper.Modules.Cleaner\MemoryKeeper.Modules.Cleaner.csproj" />
+    <ProjectReference Include="..\Modules\MemoryKeeper.Modules.Whitelist\MemoryKeeper.Modules.Whitelist.csproj" />
+    <ProjectReference Include="..\Modules\MemoryKeeper.Modules.Disabled\MemoryKeeper.Modules.Disabled.csproj" />
+    <Resource Include="app.ico" />
+    <Resource Include="logo-mark.png" />
+  </ItemGroup>
+
+  <!-- 托盘图标运行时从 exe 旁按文件读取（单文件发布时内嵌资源读不到文件路径） -->
+  <Target Name="CopyAppIconToPublish" AfterTargets="Publish">
+    <Copy SourceFiles="app.ico" DestinationFolder="$(PublishDir)" />
+  </Target>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Version>1.0.0</Version>
+    <Product>宇奇轻管</Product>
+    <Description>极简 Windows 后台应用清理工具</Description>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+
+</Project>

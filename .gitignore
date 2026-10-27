@@ -1,0 +1,19 @@
+# Build outputs
+bin/
+obj/
+publish/
+
+# IDE
+.vs/
+.idea/
+*.user
+
+# OS
+Thumbs.db
+Desktop.ini
+nul
+
+# Distribution artifacts
+dist/
+*.msi
+.capture.ps1

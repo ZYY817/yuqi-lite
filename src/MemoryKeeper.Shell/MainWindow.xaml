@@ -1,0 +1,226 @@
+﻿<Window x:Class="MemoryKeeper.Shell.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:shared="clr-namespace:MemoryKeeper.Modules.Shared;assembly=MemoryKeeper.Modules.Shared"
+        mc:Ignorable="d"
+        Title="宇奇轻管" Width="840" Height="700" MinWidth="800" MinHeight="600"
+        Icon="pack://application:,,,/app.ico"
+        FontFamily="{StaticResource UiFont}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        RenderOptions.ClearTypeHint="Enabled"
+        WindowStyle="None" ResizeMode="CanResize"
+        WindowStartupLocation="CenterScreen"
+        Background="#F8F9FB"
+        AllowsTransparency="False">
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0" ResizeBorderThickness="6" GlassFrameThickness="-1" UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+    <Window.Resources>
+        <Style x:Key="WinBtn" TargetType="Button">
+            <Setter Property="Width" Value="34"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="#737985"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#EAECEF" TargetName="b"/>
+                                <Setter Property="TextElement.Foreground" Value="#191A1D" TargetName="b"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border BorderBrush="#DFE2E9" BorderThickness="1" CornerRadius="8" Background="{StaticResource MkCanvasBg}">
+        <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="52"/>
+            <RowDefinition Height="1"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 顶栏：左侧几何双胶囊 Logo + 标题 / 居中滑动分段 Tab / 右侧控制按钮 -->
+        <Grid Grid.Row="0" Background="Transparent" MouseLeftButtonDown="Chrome_Drag">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="20,0,0,0">
+                <!-- Yuqi Lite 图形标（提取自品牌参考图，透明底 PNG） -->
+                <Image Source="pack://application:,,,/logo-mark.png" Width="22" Height="22"
+                       VerticalAlignment="Center" Margin="0,0,9,0"
+                       RenderOptions.BitmapScalingMode="HighQuality"/>
+                <TextBlock Text="宇奇轻管" FontSize="14.5" FontWeight="Bold" Foreground="#191A1D" VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <shared:SlidingTabs x:Name="NavTabs" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,14,0">
+                <Button Content="?" Style="{StaticResource WinBtn}" ToolTip="查看首次使用引导" Click="ShowGuide_Click"/>
+                <Button Content="—" Style="{StaticResource WinBtn}" Click="Min_Click"/>
+                <Button Content="▢" Style="{StaticResource WinBtn}" Click="Max_Click"/>
+                <Button Content="✕" Style="{StaticResource WinBtn}" Click="Close_Click"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- 顶栏底部分隔线 -->
+        <Border Grid.Row="1" Background="#EBEDF2" Margin="20,0,20,0" Height="1"/>
+
+        <!-- 主模块内容区 -->
+        <ContentControl x:Name="ModuleContent" Grid.Row="2"/>
+
+        <!-- ==================== 首次使用欢迎引导页 (WelcomeOverlay — 对应参考图1) ==================== -->
+        <Border x:Name="WelcomeOverlay" Grid.Row="2" Background="#F8F9FB" Visibility="Collapsed" Padding="58,20,58,24">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="272"/>
+                    <ColumnDefinition Width="56"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- 左侧：柔和光晕 + Logo 卡片 + 产品名 + 标语 -->
+                <Grid Grid.Column="0" VerticalAlignment="Center">
+                    <Ellipse Width="240" Height="240" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Ellipse.Fill>
+                            <RadialGradientBrush Center="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
+                                <GradientStop Color="#DDE5F4" Offset="0"/>
+                                <GradientStop Color="#00DDE5F4" Offset="1"/>
+                            </RadialGradientBrush>
+                        </Ellipse.Fill>
+                    </Ellipse>
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Border Width="118" Height="118" CornerRadius="30" Background="White"
+                                HorizontalAlignment="Center">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#25304A" Opacity="0.10" BlurRadius="24" ShadowDepth="4"/>
+                            </Border.Effect>
+                            <Image Source="pack://application:,,,/logo-mark.png" Width="72" Height="72"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   RenderOptions.BitmapScalingMode="HighQuality"/>
+                        </Border>
+                        <TextBlock Text="宇奇轻管" FontSize="19" FontWeight="Bold" Foreground="#191A1D"
+                                   HorizontalAlignment="Center" Margin="0,16,0,0"/>
+                        <TextBlock Text="让电脑把资源留给&#x0a;你正在使用的应用" FontSize="12" Foreground="#737985"
+                                   HorizontalAlignment="Center" TextAlignment="Center" Margin="0,6,0,0" LineHeight="18"/>
+                    </StackPanel>
+                    <Viewbox Width="13" Height="13" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="22,-4,0,0">
+                        <Path Data="M12,2 L14.1,9.9 L22,12 L14.1,14.1 L12,22 L9.9,14.1 L2,12 L9.9,9.9 Z" Fill="#191A1D" Width="24" Height="24"/>
+                    </Viewbox>
+                    <Viewbox Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,16,10">
+                        <Path Data="M12,2 L14.1,9.9 L22,12 L14.1,14.1 L12,22 L9.9,14.1 L2,12 L9.9,9.9 Z" Fill="#191A1D" Width="24" Height="24"/>
+                    </Viewbox>
+                </Grid>
+
+                <!-- 右侧：标题 + 说明 + 三能力 + 双入口按钮 + 跳过 -->
+                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                    <TextBlock Text="简单管理后台应用&#x0a;让电脑更专注于你正在使用的应用" FontSize="25" FontWeight="Bold"
+                               Foreground="#191A1D" LineHeight="36" LineStackingStrategy="BlockLineHeight"/>
+                    <TextBlock Text="智能识别不必要的后台应用，展示用途与占用，由你决定哪些可以关闭。还可以为游戏或大型工具创建专属模式，一键管理后台。"
+                               FontSize="12.5" Foreground="#737985" Margin="0,12,0,22" LineHeight="21" TextWrapping="Wrap"/>
+
+                    <!-- 三个核心能力：淡彩色块 + 矢量图标 -->
+                    <Grid Margin="0,0,0,26">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Grid Grid.Column="0" Margin="0,0,14,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Width="36" Height="36" CornerRadius="10" Background="#FDF2E3" VerticalAlignment="Top">
+                                <Viewbox Width="17" Height="17" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Data="M13.5,2 L5.5,13.5 L11,13.5 L10,22 L18.5,10 L12.8,10 Z" Fill="#E8A33D"/>
+                                    </Canvas>
+                                </Viewbox>
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                <TextBlock Text="智能清理" FontSize="13" FontWeight="Bold" Foreground="#191A1D"/>
+                                <TextBlock Text="快速识别可关闭的后台应用，释放内存空间。" FontSize="11" Foreground="#737985"
+                                           Margin="0,3,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Grid.Column="1" Margin="0,0,14,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Width="36" Height="36" CornerRadius="10" Background="#E8F0FE" VerticalAlignment="Top">
+                                <Viewbox Width="17" Height="17" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Data="M4,7 H20 M4,12 H20 M4,17 H20" Stroke="#3B82F6" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                        <Ellipse Width="5" Height="5" Fill="#3B82F6" Canvas.Left="14" Canvas.Top="4.5"/>
+                                        <Ellipse Width="5" Height="5" Fill="#3B82F6" Canvas.Left="7" Canvas.Top="9.5"/>
+                                        <Ellipse Width="5" Height="5" Fill="#3B82F6" Canvas.Left="16" Canvas.Top="14.5"/>
+                                    </Canvas>
+                                </Viewbox>
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                <TextBlock Text="自定义模式" FontSize="13" FontWeight="Bold" Foreground="#191A1D"/>
+                                <TextBlock Text="为游戏或大型工具设置专属规则，自动管理后台。" FontSize="11" Foreground="#737985"
+                                           Margin="0,3,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Grid.Column="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Width="36" Height="36" CornerRadius="10" Background="#E7F5EE" VerticalAlignment="Top">
+                                <Viewbox Width="17" Height="17" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Data="M12,2.5 L19.5,5.2 L19.5,11 C19.5,16.2 16.2,20.3 12,21.8 C7.8,20.3 4.5,16.2 4.5,11 L4.5,5.2 Z" Fill="#1FA84F"/>
+                                        <Path Data="M8.3,11.8 L10.9,14.4 L15.9,9" Stroke="White" StrokeThickness="2"
+                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                    </Canvas>
+                                </Viewbox>
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                <TextBlock Text="安全保护" FontSize="13" FontWeight="Bold" Foreground="#191A1D"/>
+                                <TextBlock Text="重要应用不会被误关闭，系统运行更稳定。" FontSize="11" Foreground="#737985"
+                                           Margin="0,3,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+
+                    <!-- 双入口：开始扫描（深色主按钮） + 创建第一个模式（描边次按钮） -->
+                    <StackPanel Orientation="Horizontal">
+                        <Button Style="{StaticResource MkPrimaryBtn}" Width="180" Height="46" Padding="0"
+                                Click="WelcomeCleanBtn_Click">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="开始扫描" FontSize="13.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <TextBlock Text="→" FontSize="13.5" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource MkOutlineBtn}" Width="180" Height="46" Padding="0" Margin="12,0,0,0"
+                                Click="WelcomeModeBtn_Click">
+                            <TextBlock Text="创建第一个模式" FontSize="13.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </Button>
+                    </StackPanel>
+
+                    <Button Content="跳过引导" Style="{StaticResource LinkBtn}" HorizontalAlignment="Left"
+                            Margin="0,12,0,0" Click="WelcomeSkip_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+        </Grid>
+    </Border>
+</Window>

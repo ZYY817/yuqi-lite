@@ -1,0 +1,156 @@
+<UserControl x:Class="MemoryKeeper.Modules.Whitelist.WhitelistView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:MemoryKeeper.Modules.Whitelist"
+             xmlns:shared="clr-namespace:MemoryKeeper.Modules.Shared;assembly=MemoryKeeper.Modules.Shared"
+             UseLayoutRounding="True" SnapsToDevicePixels="True">
+    <UserControl.Resources>
+        <!-- 统一行模板：系统关键（只读）/ 已保护（可移除）/ 候选（可加入） -->
+        <DataTemplate x:Key="WlRow" DataType="{x:Type local:WhitelistItemVm}">
+            <Border x:Name="row" Style="{StaticResource MkFlatRow}">
+                <Border.ContextMenu>
+                    <ContextMenu Style="{StaticResource RowMenu}" ItemContainerStyle="{StaticResource RowMenuItem}">
+                        <MenuItem Header="从保护名单移除" Click="SingleRemove_Click" Tag="{Binding}"
+                                  Visibility="{Binding ShowRemove, Converter={StaticResource BoolToVis}}"/>
+                        <MenuItem Header="打开文件所在目录" Click="OpenDir_Click" Tag="{Binding}"
+                                  Visibility="{Binding HasPath, Converter={StaticResource BoolToVis}}"/>
+                    </ContextMenu>
+                </Border.ContextMenu>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <shared:IconTile Grid.Column="0" TileSize="34" TileRadius="7" IconSize="18" LetterSize="13"
+                                     IconPath="{Binding IconPath}" DisplayName="{Binding Name}"
+                                     Source="{Binding IconPath, Converter={StaticResource PathToIcon}}"/>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0">
+                        <TextBlock Text="{Binding Name}" Style="{StaticResource MkRowTitle}"/>
+                        <TextBlock Text="{Binding Detail}" Style="{StaticResource MkRowDesc}"/>
+                    </StackPanel>
+
+                    <TextBlock Grid.Column="2" Text="{Binding Memory}" Style="{StaticResource MkRowMemory}" Margin="12,0"/>
+
+                    <!-- 系统关键进程：强制保护，无任何操作 -->
+                    <Border Grid.Column="3" Background="#F0F2F5" CornerRadius="6" Padding="11,4"
+                            VerticalAlignment="Center"
+                            Visibility="{Binding IsSystemRow, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="系统保护" FontSize="11.5" FontWeight="SemiBold" Foreground="#5C616C"/>
+                    </Border>
+
+                    <!-- 已受保护项不再重复显示徽标（本列表本身就是保护名单） -->
+
+                    <Button Grid.Column="4" Content="移除" Style="{StaticResource MkInlineBtn}" Padding="10,4"
+                            Margin="8,0,0,0" Click="SingleRemove_Click" Tag="{Binding}"
+                            Visibility="{Binding ShowRemove, Converter={StaticResource BoolToVis}}"/>
+                    <Button Grid.Column="4" Content="加入保护" Style="{StaticResource MkInlineBtn}" Padding="14,6"
+                            Margin="8,0,0,0" Click="AddProtect_Click" Tag="{Binding}"
+                            Visibility="{Binding ShowAdd, Converter={StaticResource BoolToVis}}"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid Margin="20,12,20,12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 顶部：标题 + 右侧「＋ 添加保护」 -->
+        <Grid Grid.Row="0" Margin="0,0,0,4">
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="保护名单" Style="{StaticResource MkPageTitle}"/>
+                <TextBlock Text="这些应用不会被普通清理或模式规则主动关闭，所有修改即时生效" Style="{StaticResource MkPageSubtitle}"/>
+            </StackPanel>
+            <Button Content="＋  添加保护" Style="{StaticResource MkInlineBtn}" Padding="16,9"
+                    FontSize="13" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"
+                    Click="GoAddTab_Click"/>
+        </Grid>
+
+        <!-- 滑动分段 Tab：系统关键进程 / 自动保护 / 手动保护 -->
+        <shared:SlidingTabs Grid.Row="1" ItemsSource="{Binding TabLabels}"
+                            SelectedIndex="{Binding TabIndex}"
+                            HorizontalAlignment="Left" Margin="0,10,0,10"/>
+
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="0,0,4,0">
+                <!-- 系统关键进程 -->
+                <StackPanel Visibility="{Binding IsSystemTab, Converter={StaticResource BoolToVis}}">
+                    <Border Background="#F0F2F5" BorderBrush="#E5E8EF" BorderThickness="1"
+                            CornerRadius="10" Padding="14,10" Margin="0,0,0,10">
+                        <TextBlock FontSize="12" Foreground="#5C616C" TextWrapping="Wrap">
+                            <Run Text="说明：" FontWeight="Bold" Foreground="#191A1D"/>
+                            <Run Text="以下为 Windows 正在运行的系统关键进程，由安全策略强制保护，普通清理与模式规则不会触碰它们。此列表为只读。"/>
+                        </TextBlock>
+                    </Border>
+                    <ItemsControl ItemsSource="{Binding SystemItems}" ItemTemplate="{StaticResource WlRow}"/>
+                </StackPanel>
+
+                <!-- 自动保护 -->
+                <StackPanel Visibility="{Binding IsAutoTab, Converter={StaticResource BoolToVis}}">
+                    <Border Style="{StaticResource MkCard}"
+                            Padding="14,10" Margin="0,0,0,10">
+                        <Grid VerticalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Width="30" Height="30" CornerRadius="8" Background="#F0F2F5" VerticalAlignment="Center">
+                                <Canvas Width="18" Height="18" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Path Data="M9,2.2 L14.4,4.5 L14.4,8.8 C14.4,12.1 12.2,14.4 9,15.3 C5.8,14.4 3.6,12.1 3.6,8.8 L3.6,4.5 Z"
+                                          Stroke="#191A1D" StrokeThickness="1.5" StrokeLineJoin="Round"/>
+                                    <Path Data="M6.6,8.9 L8.4,10.7 L11.8,7.1" Stroke="#191A1D" StrokeThickness="1.5"
+                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                </Canvas>
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="自动保护系统与驱动组件" FontSize="12.5" FontWeight="Bold" Foreground="#191A1D"/>
+                                <TextBlock Text="根据可靠的系统组件、驱动依赖等识别结果默认保护" FontSize="11" Foreground="#737985" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <CheckBox Grid.Column="2" IsChecked="{Binding AutoProtect}" Style="{StaticResource BlueSwitch}"
+                                      VerticalAlignment="Center" Margin="10,0,2,0"/>
+                        </Grid>
+                    </Border>
+                    <ItemsControl ItemsSource="{Binding AutoItems}" ItemTemplate="{StaticResource WlRow}"/>
+                </StackPanel>
+
+                <!-- 手动保护 -->
+                <StackPanel Visibility="{Binding IsManualTab, Converter={StaticResource BoolToVis}}">
+                    <ItemsControl ItemsSource="{Binding ManualItems}" ItemTemplate="{StaticResource WlRow}"/>
+                    <TextBlock Text="还没有手动保护的应用&#x0a;可在「添加保护」页选择正在使用的应用加入"
+                               FontSize="12.5" Foreground="#969BA5" TextAlignment="Center" Margin="0,26"
+                               Visibility="{Binding ManualEmpty, Converter={StaticResource BoolToVis}}"/>
+                </StackPanel>
+
+                <!-- 添加保护（候选项） -->
+                <StackPanel Visibility="{Binding IsAddTab, Converter={StaticResource BoolToVis}}">
+                    <Border Background="#EEF3FD" BorderThickness="0" CornerRadius="9"
+                            Padding="14,9" Margin="0,0,0,10">
+                        <TextBlock Text="建议将正在使用的常用工具加入保护，加入后立即生效，可在「手动保护」页随时移除。"
+                                   FontSize="12" Foreground="#3D63B8" TextWrapping="Wrap"/>
+                    </Border>
+                    <ItemsControl ItemsSource="{Binding CandidateItems}" ItemTemplate="{StaticResource WlRow}"/>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <TextBlock Grid.Row="3" Text="移除保护不等于结束进程；所有修改立即生效"
+                   FontSize="11.5" Foreground="#969BA5" HorizontalAlignment="Center" Margin="0,10,0,0"/>
+
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,6,0,0">
+            <Button Content="恢复默认保护" Style="{StaticResource LinkBtn}" Click="RuleHint_Click"/>
+            <TextBlock Text="|" Foreground="#D0D4DC" VerticalAlignment="Center" Margin="14,0"/>
+            <Button Content="刷新列表" Style="{StaticResource LinkBtn}" Click="Refresh_Click"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

@@ -1,0 +1,32 @@
+<UserControl x:Class="MemoryKeeper.Modules.Shared.IconTile"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shared="clr-namespace:MemoryKeeper.Modules.Shared"
+             x:Name="root">
+    <Border Width="{Binding TileSize, ElementName=root}" Height="{Binding TileSize, ElementName=root}"
+            CornerRadius="{Binding TileRadius, ElementName=root}"
+            UseLayoutRounding="True" SnapsToDevicePixels="True">
+        <Border.Background>
+            <MultiBinding Converter="{StaticResource IconTint}">
+                <Binding Path="IconPath" ElementName="root"/>
+                <Binding Path="DisplayName" ElementName="root"/>
+            </MultiBinding>
+        </Border.Background>
+        <Grid>
+            <Image x:Name="PART_Image" Source="{Binding Source, ElementName=root}"
+                   Width="{Binding IconSize, ElementName=root}" Height="{Binding IconSize, ElementName=root}"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                   RenderOptions.BitmapScalingMode="HighQuality"/>
+            <TextBlock x:Name="PART_Letter" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       FontWeight="Bold" TextOptions.TextFormattingMode="Display"
+                       FontSize="{Binding LetterSize, ElementName=root}">
+                <TextBlock.Foreground>
+                    <MultiBinding Converter="{StaticResource IconAccent}">
+                        <Binding Path="IconPath" ElementName="root"/>
+                        <Binding Path="DisplayName" ElementName="root"/>
+                    </MultiBinding>
+                </TextBlock.Foreground>
+            </TextBlock>
+        </Grid>
+    </Border>
+</UserControl>

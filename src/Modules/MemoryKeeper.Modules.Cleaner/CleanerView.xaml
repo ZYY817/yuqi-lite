@@ -1,0 +1,479 @@
+<UserControl x:Class="MemoryKeeper.Modules.Cleaner.CleanerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:MemoryKeeper.Modules.Cleaner"
+             xmlns:shared="clr-namespace:MemoryKeeper.Modules.Shared;assembly=MemoryKeeper.Modules.Shared"
+             UseLayoutRounding="True" SnapsToDevicePixels="True">
+    <UserControl.Resources>
+        <!-- 标准白色圆角行卡片模板 -->
+        <DataTemplate x:Key="AppRowCardTemplate" DataType="{x:Type local:AppItemViewModel}">
+            <Border x:Name="card" Style="{StaticResource MkFlatRow}" Cursor="Hand"
+                    MouseLeftButtonUp="Row_Click">
+                <Border.ContextMenu>
+                    <ContextMenu Style="{StaticResource RowMenu}" ItemContainerStyle="{StaticResource RowMenuItem}">
+                        <MenuItem Header="查看应用详情与关联进程" Click="Menu_Detail" Tag="{Binding}"/>
+                        <MenuItem Header="打开文件所在目录" Click="Menu_OpenLocation" Tag="{Binding}"/>
+                        <MenuItem Header="加入/移除保护名单" Click="Menu_Protect" Tag="{Binding}"/>
+                        <MenuItem Header="禁止其自动重启（本会话）" Click="Menu_BlockRespawn" Tag="{Binding}"/>
+                        <MenuItem Header="加入模式关闭名单" Click="Menu_AddToMode" Tag="{Binding}"/>
+                        <MenuItem Header="管理开机启动项" Click="Menu_ManageStartup" Tag="{Binding}"/>
+                    </ContextMenu>
+                </Border.ContextMenu>
+                <Grid Background="Transparent">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <CheckBox IsChecked="{Binding IsSelected}" Style="{StaticResource SquircleCheck}"
+                              Visibility="{Binding IsProtected, Converter={StaticResource InverseBoolToVis}}"/>
+                    <shared:IconTile Grid.Column="1" Margin="12,0" TileSize="34" TileRadius="7"
+                                     IconSize="18" LetterSize="13"
+                                     IconPath="{Binding IconPath}" DisplayName="{Binding DisplayName}"
+                                     Source="{Binding IconPath, Converter={StaticResource PathToIcon}}"/>
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding DisplayName, Mode=OneWay}" Style="{StaticResource MkRowTitle}"/>
+                        <TextBlock Text="{Binding Detail, Mode=OneWay}" Style="{StaticResource MkRowDesc}"/>
+                    </StackPanel>
+                    <Border Grid.Column="3" Background="#FEF0E8" CornerRadius="5" Padding="8,2" Margin="8,0,0,0"
+                            VerticalAlignment="Center"
+                            Visibility="{Binding IsRespawnBlocked, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="{Binding RespawnBadgeText}" FontSize="10.5" Foreground="#D95D1E" FontWeight="SemiBold"/>
+                    </Border>
+                    <Border Grid.Column="3" Background="#F0F2F5" CornerRadius="5" Padding="8,2" Margin="8,0,0,0"
+                            VerticalAlignment="Center"
+                            Visibility="{Binding NeedsAdminOnly, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="需管理员" FontSize="10.5" Foreground="#737985" FontWeight="SemiBold"/>
+                    </Border>
+                    <!-- 悬停显示的行内操作：浮在名称列空闲区右侧，不影响内存列对齐 -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
+                                HorizontalAlignment="Right" Margin="0,0,2,0" Background="#F8F9FB">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Opacity" Value="0"/>
+                                <Setter Property="IsHitTestVisible" Value="False"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsMouseOver, ElementName=card}" Value="True">
+                                        <Setter Property="Opacity" Value="1"/>
+                                        <Setter Property="IsHitTestVisible" Value="True"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <Button Content="目录" Style="{StaticResource LinkBtn}" FontSize="11.5" Padding="4,0"
+                                Click="Menu_OpenLocation" Tag="{Binding}"
+                                Visibility="{Binding HasPath, Converter={StaticResource BoolToVis}}"/>
+                        <Button Content="详情" Style="{StaticResource LinkBtn}" FontSize="11.5" Padding="4,0"
+                                Margin="8,0,0,0" Click="Menu_Detail" Tag="{Binding}"/>
+                    </StackPanel>
+                    <TextBlock Grid.Column="4" Text="{Binding MemoryText, Mode=OneWay}"
+                               Style="{StaticResource MkRowMemory}" Width="66" Margin="8,0,2,0"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid Margin="20,12,20,12">
+        <!-- ==================== 1. 清理首页 (Home — 对应参考图2) ==================== -->
+        <Grid Visibility="{Binding IsHomeScreen, Converter={StaticResource BoolToVis}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- 顶部：左侧发现统计 + 右侧当前模式卡片 -->
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Headline, Mode=OneWay}" Style="{StaticResource MkPageTitle}"/>
+                    <TextBlock Text="{Binding SummaryLine, Mode=OneWay}" Style="{StaticResource MkPageSubtitle}"/>
+                </StackPanel>
+
+                <!-- 当前模式：名称状态 + iOS 风格小开关（未启用时打开会先去模式页选择） -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding CurrentModeName}" FontSize="12.5" FontWeight="Bold"
+                               Foreground="#191A1D" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding CurrentModeSubtitle}" FontSize="11" Foreground="#737985"
+                               VerticalAlignment="Center" Margin="6,1,10,0"/>
+                    <CheckBox IsChecked="{Binding ModeSwitchOn}" Style="{StaticResource Switch}"
+                              VerticalAlignment="Center" ToolTip="开启/停止当前模式"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- 滑动分段 Tab + 右侧搜索/全选/排序/刷新 -->
+            <Grid Grid.Row="1" Margin="0,12,0,8">
+                <shared:SlidingTabs ItemsSource="{Binding HomeTabLabels}"
+                                    SelectedIndex="{Binding HomeTabIndex}"
+                                    VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Height="30">
+                    <TextBox Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource MkSearchBox}" Tag="搜索应用名或说明..." Width="160" Margin="0,0,10,0"
+                             Visibility="{Binding IsOthersTab, Converter={StaticResource BoolToVis}}"/>
+                    <Button Content="全选/取消" Style="{StaticResource LinkBtn}" FontSize="12" Padding="4,0"
+                            VerticalAlignment="Center" Click="SelectHome_Click"/>
+                    <Border Width="1" Height="14" Background="#DFE2E8" Margin="9,0" VerticalAlignment="Center"/>
+                    <Button Content="{Binding SortButtonText, Mode=OneWay}" Style="{StaticResource LinkBtn}"
+                            FontSize="12" Padding="4,0" VerticalAlignment="Center" Click="ToggleSort_Click"/>
+                    <Border Width="1" Height="14" Background="#DFE2E8" Margin="9,0" VerticalAlignment="Center"/>
+                    <Button Content="刷新" Style="{StaticResource LinkBtn}" FontSize="12" Padding="4,0"
+                            VerticalAlignment="Center" Click="Refresh_Click"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- 应用列表（统一行式，滚动区不遮挡底部操作栏） -->
+            <ScrollViewer x:Name="HomeListScroll" Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding HomeItems}" ItemTemplate="{StaticResource AppRowCardTemplate}" Margin="0,0,4,0"/>
+            </ScrollViewer>
+
+            <!-- 空状态：柔和圆形 + 主副文案 -->
+            <StackPanel Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Visibility="{Binding HomeEmpty, Converter={StaticResource BoolToVis}}">
+                <Border Width="52" Height="52" CornerRadius="26" Background="#ECEEF3" HorizontalAlignment="Center">
+                    <Canvas Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Path Data="M4,12 L9,17 L18,6" Stroke="#A6ABB5" StrokeThickness="2.4"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                    </Canvas>
+                </Border>
+                <TextBlock Text="当前分组下没有可显示的后台应用" FontSize="13" FontWeight="SemiBold"
+                           Foreground="#5A5D66" HorizontalAlignment="Center" Margin="0,12,0,0"/>
+                <TextBlock Text="很干净，或换个分组看看" FontSize="11.5" Foreground="#A6ABB5"
+                           HorizontalAlignment="Center" Margin="0,4,0,0"/>
+            </StackPanel>
+
+            <!-- 底部固定操作区：分隔线 + 主按钮 + 预计可回收说明 -->
+            <Border Grid.Row="3" Height="1" Background="{StaticResource MkRowHairline}" Margin="-20,6,-20,0"/>
+
+            <Button Grid.Row="4" Content="{Binding CleanText, Mode=OneWay}"
+                    Click="Clean_Click" IsEnabled="{Binding CanClean}"
+                    Style="{StaticResource MkPrimaryBtn}" Margin="0,10,0,0"/>
+
+            <TextBlock Grid.Row="5" Text="{Binding EstimateCaption, Mode=OneWay}"
+                       FontSize="11.5" Foreground="#969BA5" HorizontalAlignment="Center" Margin="0,7,0,0"
+                       Visibility="{Binding EstimateCaption, Converter={x:Static shared:StringNotEmptyToVis.Instance}}"/>
+        </Grid>
+
+        <!-- ==================== 2. 应用详情页 (Detail) ==================== -->
+        <Border Visibility="{Binding IsDetailScreen, Converter={StaticResource BoolToVis}}"
+                Background="{StaticResource MkCanvasBg}">
+        <Grid DataContext="{Binding Detail}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0">
+                <Button Content="← 返回列表" Style="{StaticResource LinkBtn}" HorizontalAlignment="Left"
+                        Padding="0,0,0,8" Click="Detail_Back"/>
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <shared:IconTile TileSize="52" TileRadius="13" IconSize="30" LetterSize="19"
+                                     VerticalAlignment="Center"
+                                     IconPath="{Binding IconPath}" DisplayName="{Binding DisplayName}"
+                                     Source="{Binding IconPath, Converter={StaticResource PathToIcon}}"/>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="14,0,0,0">
+                        <TextBlock Text="{Binding DisplayName}" FontSize="19" FontWeight="Bold" Foreground="#191A1D"/>
+                        <TextBlock Text="{Binding Description}" FontSize="12.5" Foreground="#737985"
+                                   Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                    <Border Grid.Column="2" Background="#ECEEF2" CornerRadius="8" Padding="12,5" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding LevelTag}" FontSize="12" Foreground="#5A5D66" FontWeight="SemiBold"/>
+                    </Border>
+                </Grid>
+                <Border Height="1" Background="{StaticResource MkHairline}"/>
+            </StackPanel>
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <Grid Margin="0,10,6,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.15*"/>
+                        <ColumnDefinition Width="18"/>
+                        <ColumnDefinition Width="1*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 左栏：概览与判断依据 -->
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="程序概览" Style="{StaticResource MkSectionTitle}" Margin="0,0,0,6"/>
+                        <Border Style="{StaticResource MkCard}" Padding="14,8">
+                            <StackPanel>
+                                <Grid Margin="0,5"><TextBlock Text="当前内存（工作集）" FontSize="12.5" Foreground="#737985"/>
+                                    <TextBlock Text="{Binding MemoryText}" FontSize="12.5" FontWeight="SemiBold" HorizontalAlignment="Right"/></Grid>
+                                <Border Height="1" Background="#F0F2F5"/>
+                                <Grid Margin="0,5"><TextBlock Text="关联进程数量" FontSize="12.5" Foreground="#737985"/>
+                                    <TextBlock Text="{Binding ProcessCountText}" FontSize="12.5" HorizontalAlignment="Right"/></Grid>
+                                <Border Height="1" Background="#F0F2F5"/>
+                                <Grid Margin="0,5"><TextBlock Text="当前运行状态" FontSize="12.5" Foreground="#737985"/>
+                                    <TextBlock Text="{Binding RuntimeText}" FontSize="12.5" HorizontalAlignment="Right"/></Grid>
+                                <Border Height="1" Background="#F0F2F5"/>
+                                <Grid Margin="0,5"><TextBlock Text="数字签名 / 发布者" FontSize="12.5" Foreground="#737985"/>
+                                    <TextBlock Text="{Binding PublisherText}" FontSize="12" HorizontalAlignment="Right" MaxWidth="200" TextTrimming="CharacterEllipsis"/></Grid>
+                                <Border Height="1" Background="#F0F2F5"/>
+                                <Grid Margin="0,5"><TextBlock Text="开机自动启动" FontSize="12.5" Foreground="#737985"/>
+                                    <TextBlock Text="{Binding StartupText}" FontSize="12" HorizontalAlignment="Right" MaxWidth="200" TextTrimming="CharacterEllipsis"/></Grid>
+                                <Border Height="1" Background="#F0F2F5"/>
+                                <Grid Margin="0,5">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="程序目录" FontSize="12.5" Foreground="#737985" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding InstallDirText}" FontSize="11.5" Foreground="#737985"
+                                               Margin="12,0,8,0" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis" ToolTip="{Binding IconPath}"/>
+                                    <Button Grid.Column="2" Content="打开目录" Style="{StaticResource LinkBtn}" FontSize="12"
+                                            Click="Detail_OpenFolder" Visibility="{Binding HasPath, Converter={StaticResource BoolToVis}}"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 关联进程明细 -->
+                        <TextBlock Text="{Binding AssociatedHeader}" Style="{StaticResource MkSectionTitle}" Margin="0,14,0,6"/>
+                        <Border Style="{StaticResource MkCard}" Padding="12,8" MaxHeight="120">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding AssociatedProcesses}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" FontSize="11.5" Foreground="#686E7A" Margin="0,2"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- 右栏：一张操作卡 = 主按钮 + 2×2 次级操作 -->
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="可执行操作" Style="{StaticResource MkSectionTitle}" Margin="0,0,0,6"/>
+                        <Border Style="{StaticResource MkCard}" Padding="14">
+                            <StackPanel>
+                                <Button Content="立即清理当前进程" Click="Detail_Clean" Style="{StaticResource MkPrimaryBtn}" Height="40"/>
+                                <TextBlock Text="仅结束当前运行的进程，不改开机启动项" FontSize="11" Foreground="#969BA5"
+                                           Margin="0,6,0,10"/>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="8"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="8"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <Button Grid.Row="0" Grid.Column="0" Content="{Binding RespawnActionTitle}"
+                                            Click="Detail_BlockRespawn" Style="{StaticResource MkOutlineBtn}"
+                                            Height="34" FontSize="12" FontWeight="Normal"/>
+                                    <Button Grid.Row="0" Grid.Column="2" Content="{Binding ProtectActionTitle}"
+                                            Click="Detail_Protect" Style="{StaticResource MkOutlineBtn}"
+                                            Height="34" FontSize="12" FontWeight="Normal"/>
+                                    <Button Grid.Row="2" Grid.Column="0" Content="加入模式规则"
+                                            Click="Detail_AddToMode" Style="{StaticResource MkOutlineBtn}"
+                                            Height="34" FontSize="12" FontWeight="Normal"/>
+                                    <Button Grid.Row="2" Grid.Column="2" Content="管理启动项"
+                                            Click="Detail_ManageStartup" Style="{StaticResource MkOutlineBtn}"
+                                            Height="34" FontSize="12" FontWeight="Normal"/>
+                                </Grid>
+                                <TextBlock Text="以上四项相互独立：禁止重启仅在软件运行期间生效；保护后不再参与清理；启动项管理保留备份可恢复。"
+                                           FontSize="10.5" Foreground="#A6ABB5" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </ScrollViewer>
+
+        </Grid>
+        </Border>
+
+        <!-- ==================== 4. 清理进行中页 (Progress — 对应参考图3) ==================== -->
+        <Grid Visibility="{Binding IsProgressScreen, Converter={StaticResource BoolToVis}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- 顶部横向状态区：纯文字进度 + 取消 -->
+            <Grid Grid.Row="0" Margin="0,4,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding ProgressSubtitle, Mode=OneWay, StringFormat=正在清理后台应用（{0}）}"
+                               FontSize="17" FontWeight="Bold" Foreground="#191A1D"/>
+                    <TextBlock Text="{Binding ProgressEta, Mode=OneWay}" FontSize="12" Foreground="#737985" Margin="0,3,0,0"/>
+                </StackPanel>
+                <Button Grid.Column="1" Content="取消清理" Click="CancelCleanup_Click"
+                        Style="{StaticResource MkOutlineBtn}" Padding="18,8" Height="36"
+                        VerticalAlignment="Center" Margin="0,0,4,0"/>
+            </Grid>
+
+            <!-- 逐项实时状态列表（徽标区分状态） -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding ProgressItems}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type local:ProgressRowVm}">
+                            <Border Style="{StaticResource MkFlatRow}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <shared:IconTile Grid.Column="0" Margin="0,0,12,0" TileSize="34" TileRadius="7"
+                                                     IconSize="18" LetterSize="13"
+                                                     IconPath="{Binding IconPath}" DisplayName="{Binding DisplayName}"
+                                                     Source="{Binding IconPath, Converter={StaticResource PathToIcon}}"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding DisplayName}" Style="{StaticResource MkRowTitle}"
+                                               VerticalAlignment="Center"/>
+                                    <Border Grid.Column="2" Background="{Binding BadgeBg}" CornerRadius="6"
+                                            Padding="11,4" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding StatusText}" FontSize="11.5" FontWeight="SemiBold"
+                                                   Foreground="{Binding BadgeFg}"/>
+                                    </Border>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- 底部一行说明 -->
+            <TextBlock Grid.Row="2" Text="正在尝试正常关闭，请稍候。受权限或守护服务影响的应用将如实标注。"
+                       FontSize="11.5" Foreground="#969BA5" HorizontalAlignment="Center" Margin="0,10,0,0"/>
+        </Grid>
+
+        <!-- ==================== 5. 清理结果页 (Result — 对应参考图4) ==================== -->
+        <Grid Visibility="{Binding IsResultScreen, Converter={StaticResource BoolToVis}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- 顶部：标题 + 两行结果摘要 -->
+            <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,4,0,14">
+                <TextBlock Text="{Binding ResultHeadline}" FontSize="20" FontWeight="Bold"
+                           Foreground="#191A1D" HorizontalAlignment="Center"/>
+                <TextBlock Text="{Binding ResultSubtitle}" FontSize="12.5" Foreground="#737985"
+                           HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                <TextBlock Text="{Binding ResultStatsLine}" FontSize="11.5" Foreground="#969BA5"
+                           HorizontalAlignment="Center" Margin="0,3,0,0"/>
+            </StackPanel>
+
+            <!-- 成功项与仍需处理项分组列表 -->
+            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="0,0,4,0">
+                    <Border Style="{StaticResource MkCard}"
+                            Padding="16,12" Margin="0,0,0,12"
+                            Visibility="{Binding ResultClosedItems.Count, Converter={x:Static shared:CountToVis.Instance}}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding ResultClosedItems.Count, StringFormat=已成功关闭 ({0})}"
+                                       FontSize="13" FontWeight="Bold" Foreground="#191A1D" Margin="0,0,0,8"/>
+                            <ItemsControl ItemsSource="{Binding ResultClosedItems}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type local:ResultRowVm}">
+                                        <Border Padding="0,7" BorderBrush="#F0F2F5" BorderThickness="0,1,0,0">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Grid Width="18" Height="18" VerticalAlignment="Center">
+                                                    <Ellipse Fill="#22A06B"/>
+                                                    <Canvas Width="12" Height="12" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                        <Path Data="M2.5,6.5 L5,9 L9.8,3.5" Stroke="White" StrokeThickness="1.8"
+                                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                                    </Canvas>
+                                                </Grid>
+                                                <shared:IconTile Grid.Column="1" Margin="10,0" TileSize="34" TileRadius="8"
+                                                                 IconSize="20" LetterSize="13"
+                                                                 IconPath="{Binding IconPath}" DisplayName="{Binding DisplayName}"
+                                                                 Source="{Binding IconPath, Converter={StaticResource PathToIcon}}"/>
+                                                <TextBlock Grid.Column="2" Text="{Binding DisplayName}" FontSize="13.5" FontWeight="SemiBold"
+                                                           Foreground="#191A1D" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="3" Text="{Binding MemoryText}" FontSize="12.5" Foreground="#737985"
+                                                           VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource MkCard}"
+                            Padding="16,12"
+                            Visibility="{Binding ResultAttentionItems.Count, Converter={x:Static shared:CountToVis.Instance}}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding ResultAttentionItems.Count, StringFormat=仍需处理 ({0})}"
+                                       FontSize="13" FontWeight="Bold" Foreground="#9A3412" Margin="0,0,0,8"/>
+                            <ItemsControl ItemsSource="{Binding ResultAttentionItems}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type local:ResultRowVm}">
+                                        <Border Padding="0,8" BorderBrush="#F0F2F5" BorderThickness="0,1,0,0">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Grid Width="18" Height="18" VerticalAlignment="Center">
+                                                    <Ellipse Fill="#EA580C"/>
+                                                    <TextBlock Text="!" Foreground="White" FontSize="11" FontWeight="Bold"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Grid>
+                                                <shared:IconTile Grid.Column="1" Margin="10,0" TileSize="36" TileRadius="9"
+                                                                 IconSize="21" LetterSize="14"
+                                                                 IconPath="{Binding IconPath}" DisplayName="{Binding DisplayName}"
+                                                                 Source="{Binding IconPath, Converter={StaticResource PathToIcon}}"/>
+                                                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding DisplayName}" FontSize="13.5" FontWeight="Bold" Foreground="#191A1D"/>
+                                                    <TextBlock Text="{Binding ReasonText}" FontSize="11.5" Foreground="#737985" Margin="0,2,0,0"
+                                                               TextTrimming="CharacterEllipsis"/>
+                                                </StackPanel>
+                                                <Button Grid.Column="3" Content="{Binding ActionBtnText}" Style="{StaticResource MkInlineBtn}"
+                                                        Click="ResultRowAction_Click" Tag="{Binding}"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- 底部固定操作区：完成 + 链接导航 -->
+            <Button Grid.Row="3" Content="完成" Style="{StaticResource MkPrimaryBtn}"
+                    Click="BackToHome_Click" Margin="0,12,0,0"/>
+
+            <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
+                <Button Content="重新扫描" Style="{StaticResource LinkBtn}" Click="Refresh_Click"/>
+                <TextBlock Text="|" Foreground="#D0D4DC" VerticalAlignment="Center" Margin="14,0"/>
+                <Button Content="查看全部应用" Style="{StaticResource LinkBtn}" Click="OpenAllApps_Click"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</UserControl>

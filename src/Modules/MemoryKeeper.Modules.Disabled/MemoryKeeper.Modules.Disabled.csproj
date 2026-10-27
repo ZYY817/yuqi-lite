@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\MemoryKeeper.Contracts\MemoryKeeper.Contracts.csproj" />
+    <ProjectReference Include="..\MemoryKeeper.Modules.Shared\MemoryKeeper.Modules.Shared.csproj" />
+  </ItemGroup>
+</Project>

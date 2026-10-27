@@ -1,0 +1,328 @@
+<UserControl x:Class="MemoryKeeper.Modules.Disabled.DisabledView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:MemoryKeeper.Modules.Disabled"
+             xmlns:shared="clr-namespace:MemoryKeeper.Modules.Shared;assembly=MemoryKeeper.Modules.Shared"
+             UseLayoutRounding="True" SnapsToDevicePixels="True">
+
+    <Grid Margin="20,12,20,12">
+        <!-- ==================== 1. 模式列表页 (我的模式 — 对应参考图6/7) ==================== -->
+        <Grid Visibility="{Binding IsListScreen, Converter={StaticResource BoolToVis}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- 顶部标题 + 右上角创建按钮 -->
+            <Grid Grid.Row="0" Margin="0,0,0,14">
+                <StackPanel>
+                    <TextBlock Text="我的模式" Style="{StaticResource MkPageTitle}"/>
+                    <TextBlock Text="为不同游戏或工具保存后台清理规则" Style="{StaticResource MkPageSubtitle}"/>
+                </StackPanel>
+                <Button Content="＋  创建新模式" Style="{StaticResource MkInlineBtn}" Padding="16,9"
+                        FontSize="13" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"
+                        Click="CreateNewMode_Click"/>
+            </Grid>
+
+            <!-- 模式卡片列表 -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="0,0,4,0">
+                    <ItemsControl ItemsSource="{Binding Modes}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type local:ModeCardVm}">
+                                <Border Style="{StaticResource MkCard}" CornerRadius="12" Padding="18,14" Margin="0,0,0,10">
+                                    <Border.ContextMenu>
+                                        <ContextMenu Style="{StaticResource RowMenu}" ItemContainerStyle="{StaticResource RowMenuItem}">
+                                            <MenuItem Header="编辑模式规则" Click="EditMode_Click" Tag="{Binding}"/>
+                                            <MenuItem Header="复制此模式" Click="DuplicateMode_Click" Tag="{Binding}"/>
+                                            <MenuItem Header="删除此模式" Click="DeleteMode_Click" Tag="{Binding}"/>
+                                        </ContextMenu>
+                                    </Border.ContextMenu>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- 模式彩色轻底图标（矢量描边） -->
+                                        <Border Grid.Column="0" Width="42" Height="42" CornerRadius="10"
+                                                Background="{Binding IconBg}" VerticalAlignment="Center">
+                                            <Viewbox Width="20" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <Path Data="{Binding IconGeometry, Converter={StaticResource StrToGeo}}"
+                                                      Stroke="{Binding IconFg}" StrokeThickness="1.9"
+                                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                                      Fill="Transparent"/>
+                                            </Viewbox>
+                                        </Border>
+
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="14,0">
+                                            <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="Bold" Foreground="#191A1D"/>
+                                            <TextBlock Text="{Binding Description}" FontSize="12" Foreground="#737985"
+                                                       Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="12,0">
+                                            <TextBlock Text="{Binding CloseSummary}" FontSize="12" Foreground="#5C616C"/>
+                                            <TextBlock Text="{Binding PreserveSummary}" FontSize="12" Foreground="#737985" Margin="0,2,0,0"/>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,14,0">
+                                            <Border Background="#F0F2F5" CornerRadius="6" Padding="10,4">
+                                                <TextBlock Text="{Binding TriggerBadge}" FontSize="11.5" Foreground="#5C616C"/>
+                                            </Border>
+                                            <Border Background="{Binding StatusBg}" CornerRadius="6" Padding="10,4" Margin="6,0,0,0">
+                                                <TextBlock Text="{Binding StatusText}" FontSize="11.5" Foreground="{Binding StatusFg}" FontWeight="SemiBold"/>
+                                            </Border>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Button Content="{Binding EnableBtnText}" Style="{StaticResource MkSmallDarkBtn}"
+                                                    Click="ToggleMode_Click" Tag="{Binding}" Margin="0,0,8,0"/>
+                                            <Button Content="编辑" Style="{StaticResource MkInlineBtn}" Padding="14,7"
+                                                    Click="EditMode_Click" Tag="{Binding}"/>
+                                            <Button Content="⋯" Style="{StaticResource MkInlineBtn}" Padding="12,7"
+                                                    Margin="6,0,0,0" Click="MoreMenu_Click" Tag="{Binding}" ToolTip="更多操作"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- ==================== 2. 编辑模式页 (编辑模式 · 游戏模式 — 对应参考图1) ==================== -->
+        <Grid Visibility="{Binding IsEditorScreen, Converter={StaticResource BoolToVis}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- 返回 + 标题 + 右侧启用此模式开关 -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,14">
+                <Button Content="←  返回" Style="{StaticResource LinkBtn}" HorizontalAlignment="Left"
+                        FontSize="13.5" Padding="0,0,0,8" Click="BackToList_Click"/>
+                <Grid>
+                    <TextBlock Text="{Binding EditorHeadline}" Style="{StaticResource MkPageTitle}"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <TextBlock Text="启用此模式" FontSize="13" Foreground="#737985" VerticalAlignment="Center"/>
+                        <CheckBox IsChecked="{Binding EditorIsActive}" Style="{StaticResource Switch}" Margin="10,0,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="0,0,4,0">
+                    <!-- 一句话规则摘要 -->
+                    <TextBlock Text="{Binding EditorSummary}" FontSize="12.5" Foreground="#737985"
+                               Margin="2,0,0,10" TextWrapping="Wrap"/>
+
+                    <!-- 触发方式卡片 -->
+                    <Border Style="{StaticResource MkCard}" CornerRadius="12" Padding="18,14" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="什么时候启用" FontSize="14.5" FontWeight="Bold" Foreground="#191A1D" Margin="0,0,0,10"/>
+                            <RadioButton Content="手动启用" Style="{StaticResource MkRadio}"
+                                         IsChecked="{Binding EditorManualTrigger}" Margin="0,0,0,8"/>
+                            <RadioButton Content="检测到指定程序启动时自动启用" Style="{StaticResource MkRadio}"
+                                         IsChecked="{Binding EditorAutoTrigger}"
+                                         ToolTip="宇奇轻管会低频监测该程序是否启动，启动时自动应用本模式规则。"/>
+
+                            <!-- 绑定的目标程序（仅自动启用时显示） -->
+                            <Border Background="#F5F6F8" BorderBrush="#EAECEF" BorderThickness="1"
+                                    CornerRadius="8" Padding="12,9" Margin="24,10,0,0"
+                                    Visibility="{Binding EditorAutoTrigger, Converter={StaticResource BoolToVis}}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <shared:IconTile TileSize="34" TileRadius="8" IconSize="20" LetterSize="13"
+                                                     IconPath="{Binding EditorTargetPath}" DisplayName="{Binding EditorTargetDisplay}"
+                                                     Source="{Binding EditorTargetPath, Converter={StaticResource PathToIcon}}"/>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0">
+                                        <TextBlock Text="{Binding EditorTargetDisplay}" FontSize="13.5" FontWeight="Bold" Foreground="#191A1D"/>
+                                        <TextBlock Text="{Binding EditorTargetSub}" FontSize="11.5" Foreground="#737985"
+                                                   Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button Content="{Binding EditorTargetBtnText}" Style="{StaticResource MkInlineBtn}" Padding="16,6"
+                                                Click="PickTargetExe_Click" Margin="0,0,8,0"/>
+                                        <Button Content="移除" Style="{StaticResource MkInlineBtn}" Padding="16,6"
+                                                Click="ClearTargetExe_Click"
+                                                Visibility="{Binding EditorHasTarget, Converter={StaticResource BoolToVis}}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 启用后做什么：三组规则合为一张卡 -->
+                    <Border Style="{StaticResource MkCard}" CornerRadius="12" Padding="18,6" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="启用后做什么" FontSize="14.5" FontWeight="Bold" Foreground="#191A1D"
+                                       Margin="0,8,0,2"/>
+                            <Grid Margin="0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid Width="22" Height="22" VerticalAlignment="Center">
+                                    <Ellipse Fill="#16A34A"/>
+                                    <Ellipse Width="7" Height="7" Fill="White"/>
+                                </Grid>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0">
+                                    <TextBlock Text="{Binding EditorPreserveTitle}" FontSize="13.5" FontWeight="Bold" Foreground="#191A1D"/>
+                                    <TextBlock Text="这些应用不会被关闭" FontSize="11.5" Foreground="#737985" Margin="0,1,0,0"/>
+                                </StackPanel>
+                                <Button Grid.Column="2" Content="管理" Style="{StaticResource MkInlineBtn}" Padding="18,6"
+                                        Click="ManagePreserve_Click"/>
+                            </Grid>
+                            <Border Height="1" Background="#F0F2F5"/>
+                            <Grid Margin="0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid Width="22" Height="22" VerticalAlignment="Center">
+                                    <Ellipse Fill="#EA580C"/>
+                                    <TextBlock Text="!" Foreground="White" FontSize="12" FontWeight="Bold"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Grid>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0">
+                                    <TextBlock Text="{Binding EditorCloseTitle}" FontSize="13.5" FontWeight="Bold" Foreground="#191A1D"/>
+                                    <TextBlock Text="模式启动时自动关闭这些应用" FontSize="11.5" Foreground="#737985" Margin="0,1,0,0"/>
+                                </StackPanel>
+                                <Button Grid.Column="2" Content="管理" Style="{StaticResource MkInlineBtn}" Padding="18,6"
+                                        Click="ManageClose_Click"/>
+                            </Grid>
+                            <Border Height="1" Background="#F0F2F5"/>
+                            <Grid Margin="0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid Width="22" Height="22" VerticalAlignment="Center">
+                                    <Ellipse Fill="#2563EB"/>
+                                    <Rectangle Width="9" Height="2.2" RadiusX="1" RadiusY="1" Fill="White"/>
+                                </Grid>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0">
+                                    <TextBlock Text="{Binding EditorRespawnTitle}" FontSize="13.5" FontWeight="Bold" Foreground="#191A1D"/>
+                                    <TextBlock Text="关闭后被重新拉起的后台组件会被持续结束" FontSize="11.5" Foreground="#737985" Margin="0,1,0,0"/>
+                                </StackPanel>
+                                <Button Grid.Column="2" Content="管理" Style="{StaticResource MkInlineBtn}" Padding="18,6"
+                                        Click="ManageRespawn_Click"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 高级设置（可折叠） -->
+                    <Border Style="{StaticResource MkCard}" CornerRadius="12" Padding="18,10">
+                        <StackPanel>
+                            <Grid Cursor="Hand" MouseLeftButtonUp="ToggleAdvanced_Click" Background="Transparent">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Viewbox Width="16" Height="16" VerticalAlignment="Center">
+                                        <Path Data="M12,8.5 A3.5,3.5 0 1,0 15.5,12 A3.5,3.5 0 1,0 12,8.5 Z M12,2.5 L12,5 M12,19 L12,21.5 M2.5,12 L5,12 M19,12 L21.5,12 M5.3,5.3 L7,7 M17,17 L18.7,18.7 M18.7,5.3 L17,7 M7,17 L5.3,18.7"
+                                              Stroke="#191A1D" StrokeThickness="1.9" Fill="Transparent"
+                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                    </Viewbox>
+                                    <TextBlock Text="高级设置" FontSize="14.5" FontWeight="Bold" Foreground="#191A1D"
+                                               Margin="12,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <TextBlock Text="⌄" FontSize="16" Foreground="#737985" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
+
+                            <StackPanel Margin="0,12,0,0" Visibility="{Binding ShowAdvanced, Converter={StaticResource BoolToVis}}">
+                                <Border Height="1" Background="#F0F2F5" Margin="0,0,0,10"/>
+                                <Grid Margin="0,4">
+                                    <StackPanel>
+                                        <TextBlock Text="模式名称" FontSize="12.5" FontWeight="SemiBold" Foreground="#191A1D"/>
+                                        <TextBox Text="{Binding EditorModeName, UpdateSourceTrigger=PropertyChanged}"
+                                                 Style="{StaticResource MkSearchBox}" Margin="0,6,0,8"/>
+                                    </StackPanel>
+                                </Grid>
+                                <Grid Margin="0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <TextBlock Text="运行期间防重启" FontSize="12.5" FontWeight="SemiBold" Foreground="#191A1D"/>
+                                        <TextBlock Text="模式启用时持续监测被关闭的应用，再次启动将被结束（每项最多 3 次）"
+                                                   FontSize="11" Foreground="#737985" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <CheckBox Grid.Column="1" IsChecked="{Binding EditorMonitorRespawn}" Style="{StaticResource Switch}"
+                                              VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                </Grid>
+                                <TextBlock Text="退出模式说明：模式停止后监测立即结束，不会强行重启已关闭的应用。"
+                                           FontSize="11.5" Foreground="#969BA5" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- ==================== 3. 模式应用选择器 (Picker) ==================== -->
+        <Grid Visibility="{Binding IsPickerScreen, Converter={StaticResource BoolToVis}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                <Button Content="←  返回模式编辑" Style="{StaticResource LinkBtn}" HorizontalAlignment="Left"
+                        Padding="0,0,0,6" Click="ClosePicker_Click"/>
+                <TextBlock Text="{Binding PickerTitle}" Style="{StaticResource MkPageTitle}"/>
+                <TextBlock Text="{Binding PickerSubtitle}" Style="{StaticResource MkPageSubtitle}"/>
+            </StackPanel>
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding PickerItems}" Margin="0,0,4,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type local:PickerAppVm}">
+                            <Border Style="{StaticResource MkRowCard}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <CheckBox IsChecked="{Binding IsChecked}" Style="{StaticResource SquircleCheck}"/>
+                                    <shared:IconTile Grid.Column="1" Margin="14,0" TileSize="40" TileRadius="10"
+                                                     IconSize="23" LetterSize="15"
+                                                     IconPath="{Binding IconPath}" DisplayName="{Binding DisplayName}"
+                                                     Source="{Binding IconPath, Converter={StaticResource PathToIcon}}"/>
+                                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding DisplayName}" Style="{StaticResource MkRowTitle}"/>
+                                            <Border Background="#FEF0E8" CornerRadius="5" Padding="7,1.5" Margin="8,0,0,0"
+                                                    Visibility="{Binding ShowConflictHint, Converter={StaticResource BoolToVis}}">
+                                                <TextBlock Text="已受全局保护（保护规则优先）" FontSize="10.5" Foreground="#D95D1E"/>
+                                            </Border>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Description}" Style="{StaticResource MkRowDesc}"/>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="3" Text="{Binding MemoryText}" Style="{StaticResource MkRowMemory}"/>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <Button Grid.Row="2" Content="保存规则并返回" Style="{StaticResource MkPrimaryBtn}"
+                    Margin="0,12,0,0" Click="SavePicker_Click"/>
+        </Grid>
+    </Grid>
+</UserControl>
