@@ -17,3 +17,4 @@ nul
 dist/
 *.msi
 .capture.ps1
+*.wixpdb
