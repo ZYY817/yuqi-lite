@@ -1,0 +1,39 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="Yuqi Lite 宇奇轻管" Manufacturer="ZYY817" Version="1.0.0"
+           UpgradeCode="01EB9068-294F-410F-A59D-DF5BF9C4D8D9" Scope="perMachine">
+    <MajorUpgrade DowngradeErrorMessage="已安装更新版本的宇奇轻管，请先卸载后再安装。" />
+    <MediaTemplate EmbedCab="yes" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLDIR" Name="YuqiLite" />
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ProgramMenuDir" Name="宇奇轻管" />
+    </StandardDirectory>
+    <StandardDirectory Id="DesktopFolder" />
+
+    <Feature Id="Main" Title="宇奇轻管" Level="1">
+      <ComponentRef Id="AppExe" />
+      <ComponentRef Id="AppIco" />
+      <ComponentRef Id="Shortcuts" />
+    </Feature>
+  </Package>
+
+  <Fragment>
+    <Component Id="AppExe" Directory="INSTALLDIR">
+      <File Source="..\dist\MemoryKeeper.Shell.exe" KeyPath="yes" />
+    </Component>
+    <Component Id="AppIco" Directory="INSTALLDIR">
+      <File Source="..\dist\app.ico" />
+    </Component>
+    <Component Id="Shortcuts" Directory="ProgramMenuDir">
+      <RegistryValue Root="HKLM" Key="Software\ZYY817\YuqiLite" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+      <Shortcut Id="StartMenuShortcut" Name="宇奇轻管" Target="[INSTALLDIR]MemoryKeeper.Shell.exe" WorkingDirectory="INSTALLDIR">
+        <Icon Id="AppIcoResource" SourceFile="..\dist\app.ico" />
+      </Shortcut>
+      <Shortcut Id="DesktopShortcut" Directory="DesktopFolder" Name="宇奇轻管" Target="[INSTALLDIR]MemoryKeeper.Shell.exe" WorkingDirectory="INSTALLDIR">
+        <Icon Id="AppIcoResource2" SourceFile="..\dist\app.ico" />
+      </Shortcut>
+    </Component>
+  </Fragment>
+</Wix>
